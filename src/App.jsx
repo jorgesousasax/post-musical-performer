@@ -13,7 +13,8 @@ const initialAxes = [
 function App() {
   const [axes, setAxes] = useState(initialAxes);
   const [title, setTitle] = useState('Post-Musical Performer');
-  const [profileName, setProfileName] = useState('My performance');
+  const [profileName, setProfileName] = useState('My perspective');
+  const [centerLabel, setCenterLabel] = useState('Subject of analysis');
   const [color, setColor] = useState('#5689A6');
   const [message, setMessage] = useState('');
 
@@ -26,6 +27,7 @@ function App() {
   const point = (index, value) => {
     const angle = (Math.PI * 2 * index / axes.length) - Math.PI / 2;
     const distance = radius * value / 100;
+
     return [
       cx + Math.cos(angle) * distance,
       cy + Math.sin(angle) * distance,
@@ -44,28 +46,32 @@ function App() {
 
   const addAxis = () => {
     const id = Math.max(0, ...axes.map(a => a.id)) + 1;
-    setAxes([...axes, {
+
+    setAxes(current => [...current, {
       id,
-      name: `New axis ${axes.length + 1}`,
+      name: `New axis ${current.length + 1}`,
       low: 'Low pole',
       high: 'High pole',
       value: 50,
     }]);
+
     setMessage('');
   };
 
   const removeAxis = (id) => {
     if (axes.length <= 3) return;
-    setAxes(axes.filter(axis => axis.id !== id));
+
+    setAxes(current => current.filter(axis => axis.id !== id));
     setMessage('');
   };
 
   const saveDiagram = () => {
     const diagram = {
       format: 'Post-Musical Performer Diagram',
-      version: 1,
+      version: 2,
       title,
       profileName,
+      centerLabel,
       color,
       axes,
     };
@@ -118,21 +124,35 @@ function App() {
         value: Math.max(0, Math.min(100, Number(axis.value))),
       })));
 
-      setTitle(typeof diagram.title === 'string'
-        ? diagram.title
-        : 'Post-Musical Performer');
+      setTitle(
+        typeof diagram.title === 'string'
+          ? diagram.title
+          : 'Post-Musical Performer'
+      );
 
-      setProfileName(typeof diagram.profileName === 'string'
-        ? diagram.profileName
-        : 'My performance');
+      setProfileName(
+        typeof diagram.profileName === 'string'
+          ? diagram.profileName
+          : 'My perspective'
+      );
 
-      setColor(/^#[0-9a-f]{6}$/i.test(diagram.color)
-        ? diagram.color
-        : '#5689A6');
+      setCenterLabel(
+        typeof diagram.centerLabel === 'string'
+          ? diagram.centerLabel
+          : 'Subject of analysis'
+      );
+
+      setColor(
+        /^#[0-9a-f]{6}$/i.test(diagram.color)
+          ? diagram.color
+          : '#5689A6'
+      );
 
       setMessage('Diagram opened successfully.');
     } catch {
-      setMessage('Could not open this file. Please select a valid diagram JSON file.');
+      setMessage(
+        'Could not open this file. Please select a valid diagram JSON file.'
+      );
     }
 
     event.target.value = '';
@@ -147,13 +167,20 @@ function App() {
       padding: '30px 20px'
     }}>
       <div style={{ maxWidth: 1150, margin: 'auto' }}>
+
         <header style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 12, letterSpacing: 3, color: '#75828a' }}>
+          <div style={{
+            fontSize: 12,
+            letterSpacing: 3,
+            color: '#75828a'
+          }}>
             PERFORMANCE RESEARCH TOOL
           </div>
+
           <h1 style={{ fontSize: 30, margin: '9px 0' }}>
             Diagram Builder
           </h1>
+
           <p style={{ color: '#6d777d', margin: 0 }}>
             Create, configure and explore performative diagrams.
           </p>
@@ -201,38 +228,48 @@ function App() {
           gap: 24,
           alignItems: 'start'
         }}>
+
           <section style={{
             background: '#fff',
             borderRadius: 16,
             padding: 20,
             boxShadow: '0 3px 16px #0000000a'
           }}>
+
+            <label style={labelStyle}>
+              Diagram title
+            </label>
+
             <input
               value={title}
               onChange={e => setTitle(e.target.value)}
               aria-label="Diagram title"
-              style={{
-                width: '100%',
-                border: 0,
-                fontSize: 22,
-                fontWeight: 600,
-                marginBottom: 8,
-                color: '#28343b',
-                outline: 'none'
-              }}
+              placeholder="Enter diagram title"
+              style={titleInputStyle}
             />
+
+            <label style={labelStyle}>
+              Profile / Perspective
+            </label>
 
             <input
               value={profileName}
               onChange={e => setProfileName(e.target.value)}
-              aria-label="Profile name"
-              style={{
-                width: '100%',
-                border: 0,
-                fontSize: 13,
-                color: '#75828a',
-                outline: 'none'
-              }}
+              aria-label="Profile or perspective"
+              placeholder="e.g. My composition, My performance..."
+              style={fieldStyle}
+            />
+
+            <label style={labelStyle}>
+              Subject of analysis (centre of diagram)
+            </label>
+
+            <input
+              value={centerLabel}
+              onChange={e => setCenterLabel(e.target.value)}
+              aria-label="Subject of analysis"
+              placeholder="e.g. Composition, Performance, Musical work..."
+              style={fieldStyle}
             />
 
             <svg
@@ -254,6 +291,7 @@ function App() {
               {axes.map((axis, index) => {
                 const [x, y] = point(index, 100);
                 const [lx, ly] = point(index, 117);
+
                 const anchor = lx < cx - 15
                   ? 'end'
                   : lx > cx + 15
@@ -270,6 +308,7 @@ function App() {
                       stroke="#b9c2c5"
                       strokeWidth="1"
                     />
+
                     <text
                       x={lx}
                       y={ly}
@@ -296,6 +335,7 @@ function App() {
 
               {axes.map((axis, index) => {
                 const [x, y] = point(index, axis.value);
+
                 return (
                   <circle
                     key={axis.id}
@@ -310,6 +350,7 @@ function App() {
               })}
 
               <circle cx={cx} cy={cy} r="4" fill="#34444d" />
+
               <text
                 x={cx}
                 y={cy + 20}
@@ -317,7 +358,7 @@ function App() {
                 fontSize="11"
                 fill="#52616a"
               >
-                PERFORMANCE
+                {centerLabel}
               </text>
             </svg>
 
@@ -340,11 +381,7 @@ function App() {
               Diagram settings
             </h2>
 
-            <label style={{
-              display: 'block',
-              fontSize: 13,
-              marginBottom: 7
-            }}>
+            <label style={labelStyle}>
               Profile colour
             </label>
 
@@ -352,7 +389,11 @@ function App() {
               type="color"
               value={color}
               onChange={e => setColor(e.target.value)}
-              style={{ width: 55, height: 35, marginBottom: 18 }}
+              style={{
+                width: 55,
+                height: 35,
+                marginBottom: 18
+              }}
             />
 
             <h3 style={{ fontSize: 15 }}>
@@ -386,7 +427,9 @@ function App() {
                       color: '#a14c4c',
                       borderRadius: 6,
                       padding: '5px 9px',
-                      cursor: axes.length <= 3 ? 'not-allowed' : 'pointer',
+                      cursor: axes.length <= 3
+                        ? 'not-allowed'
+                        : 'pointer',
                       opacity: axes.length <= 3 ? 0.4 : 1
                     }}
                   >
@@ -396,7 +439,11 @@ function App() {
 
                 <input
                   value={axis.name}
-                  onChange={e => updateAxis(axis.id, 'name', e.target.value)}
+                  onChange={e => updateAxis(
+                    axis.id,
+                    'name',
+                    e.target.value
+                  )}
                   placeholder="Axis name"
                   style={fieldStyle}
                 />
@@ -409,14 +456,22 @@ function App() {
                 }}>
                   <input
                     value={axis.low}
-                    onChange={e => updateAxis(axis.id, 'low', e.target.value)}
+                    onChange={e => updateAxis(
+                      axis.id,
+                      'low',
+                      e.target.value
+                    )}
                     placeholder="Low pole"
                     style={fieldStyle}
                   />
 
                   <input
                     value={axis.high}
-                    onChange={e => updateAxis(axis.id, 'high', e.target.value)}
+                    onChange={e => updateAxis(
+                      axis.id,
+                      'high',
+                      e.target.value
+                    )}
                     placeholder="High pole"
                     style={fieldStyle}
                   />
@@ -444,7 +499,10 @@ function App() {
                     'value',
                     Number(e.target.value)
                   )}
-                  style={{ width: '100%', accentColor: color }}
+                  style={{
+                    width: '100%',
+                    accentColor: color
+                  }}
                 />
               </div>
             ))}
@@ -485,6 +543,27 @@ const actionButton = {
   cursor: 'pointer',
   fontWeight: 600,
   color: '#35434a'
+};
+
+const labelStyle = {
+  display: 'block',
+  fontSize: 12,
+  fontWeight: 600,
+  color: '#65747b',
+  marginTop: 13,
+  marginBottom: 6
+};
+
+const titleInputStyle = {
+  width: '100%',
+  boxSizing: 'border-box',
+  border: '1px solid #dce2e4',
+  borderRadius: 6,
+  padding: 10,
+  fontSize: 20,
+  fontWeight: 600,
+  color: '#28343b',
+  outline: 'none'
 };
 
 const fieldStyle = {

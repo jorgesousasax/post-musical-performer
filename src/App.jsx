@@ -16,6 +16,7 @@ function App() {
   const [profileName, setProfileName] = useState('My perspective');
   const [centerLabel, setCenterLabel] = useState('Subject of analysis');
   const [color, setColor] = useState('#5689A6');
+  const [showArrows, setShowArrows] = useState(false);
   const [message, setMessage] = useState('');
 
   const fileInputRef = useRef(null);
@@ -39,7 +40,6 @@ function App() {
   const polygon = (values) =>
     values.map((value, index) => point(index, value).join(',')).join(' ');
 
-  // Creates a continuous, smooth curve through the data points.
   const smoothPath = (values) => {
     const points = values.map((value, index) => point(index, value));
     const count = points.length;
@@ -144,11 +144,12 @@ function App() {
   const saveDiagram = () => {
     const diagram = {
       format: 'Post-Musical Performer Diagram',
-      version: 3,
+      version: 4,
       title,
       profileName,
       centerLabel,
       color,
+      showArrows,
       axes,
     };
 
@@ -224,6 +225,8 @@ function App() {
           : '#5689A6'
       );
 
+      setShowArrows(diagram.showArrows === true);
+
       setMessage('Diagram opened successfully.');
     } catch {
       setMessage(
@@ -232,6 +235,23 @@ function App() {
     }
 
     event.target.value = '';
+  };
+
+  const arrowPoints = (index, position) => {
+    const angle = (Math.PI * 2 * index / axes.length) - Math.PI / 2;
+    const distance = position === 'outer' ? radius : 18;
+    const x = cx + Math.cos(angle) * distance;
+    const y = cy + Math.sin(angle) * distance;
+
+    const direction = position === 'outer' ? 1 : -1;
+    const tipX = x + Math.cos(angle) * 7 * direction;
+    const tipY = y + Math.sin(angle) * 7 * direction;
+    const baseX = x - Math.cos(angle) * 5 * direction;
+    const baseY = y - Math.sin(angle) * 5 * direction;
+    const sideX = -Math.sin(angle) * 4;
+    const sideY = Math.cos(angle) * 4;
+
+    return `${tipX},${tipY} ${baseX + sideX},${baseY + sideY} ${baseX - sideX},${baseY - sideY}`;
   };
 
   return (
@@ -379,6 +399,13 @@ function App() {
                     ? 'start'
                     : 'middle';
 
+                const angle = (Math.PI * 2 * index / axes.length) - Math.PI / 2;
+
+                const lowX = cx + Math.cos(angle) * 65;
+                const lowY = cy + Math.sin(angle) * 65;
+                const highX = cx + Math.cos(angle) * 198;
+                const highY = cy + Math.sin(angle) * 198;
+
                 return (
                   <g key={axis.id}>
                     <line
@@ -401,6 +428,41 @@ function App() {
                     >
                       {axis.name}
                     </text>
+
+                    <text
+                      x={lowX}
+                      y={lowY}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize="10"
+                      fill="#718087"
+                    >
+                      {axis.low}
+                    </text>
+
+                    <text
+                      x={highX}
+                      y={highY}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize="10"
+                      fill="#718087"
+                    >
+                      {axis.high}
+                    </text>
+
+                    {showArrows && (
+                      <>
+                        <polygon
+                          points={arrowPoints(index, 'outer')}
+                          fill="#718087"
+                        />
+                        <polygon
+                          points={arrowPoints(index, 'inner')}
+                          fill="#718087"
+                        />
+                      </>
+                    )}
                   </g>
                 );
               })}
@@ -488,6 +550,37 @@ function App() {
                 marginBottom: 18
               }}
             />
+
+            <div style={{
+              borderTop: '1px solid #e9ecec',
+              borderBottom: '1px solid #e9ecec',
+              padding: '13px 0',
+              marginBottom: 15
+            }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 9,
+                fontSize: 13,
+                color: '#52616a',
+                cursor: 'pointer'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={showArrows}
+                  onChange={e => setShowArrows(e.target.checked)}
+                  style={{ accentColor: color }}
+                />
+                Show arrows at axis ends
+              </label>
+              <p style={{
+                fontSize: 11,
+                color: '#899398',
+                margin: '6px 0 0 24px'
+              }}>
+                Optional directional indicators.
+              </p>
+            </div>
 
             <h3 style={{ fontSize: 15 }}>
               Axes ({axes.length})

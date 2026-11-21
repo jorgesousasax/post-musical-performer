@@ -19,6 +19,8 @@ function App() {
   const [message, setMessage] = useState('');
 
   const fileInputRef = useRef(null);
+  const svgRef = useRef(null);
+  const draggingAxisId = useRef(null);
 
   const cx = 300;
   const cy = 285;
@@ -37,11 +39,85 @@ function App() {
   const polygon = (values) =>
     values.map((value, index) => point(index, value).join(',')).join(' ');
 
+  // Creates a continuous, smooth curve through the data points.
+  const smoothPath = (values) => {
+    const points = values.map((value, index) => point(index, value));
+    const count = points.length;
+
+    if (count < 3) return '';
+
+    const tension = 0.8;
+    let path = `M ${points[0][0]} ${points[0][1]}`;
+
+    for (let i = 0; i < count; i++) {
+      const previous = points[(i - 1 + count) % count];
+      const current = points[i];
+      const next = points[(i + 1) % count];
+      const afterNext = points[(i + 2) % count];
+
+      const cp1x = current[0] + (next[0] - previous[0]) * tension / 6;
+      const cp1y = current[1] + (next[1] - previous[1]) * tension / 6;
+      const cp2x = next[0] - (afterNext[0] - current[0]) * tension / 6;
+      const cp2y = next[1] - (afterNext[1] - current[1]) * tension / 6;
+
+      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${next[0]} ${next[1]}`;
+    }
+
+    return path + ' Z';
+  };
+
   const updateAxis = (id, field, value) => {
     setAxes(current => current.map(axis =>
       axis.id === id ? { ...axis, [field]: value } : axis
     ));
     setMessage('');
+  };
+
+  const startDragging = (event, axisId) => {
+    event.preventDefault();
+    draggingAxisId.current = axisId;
+
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture may not be available in every browser.
+    }
+  };
+
+  const handlePointerMove = (event) => {
+    if (draggingAxisId.current === null || !svgRef.current) return;
+
+    const svg = svgRef.current;
+    const matrix = svg.getScreenCTM();
+
+    if (!matrix) return;
+
+    const screenPoint = svg.createSVGPoint();
+    screenPoint.x = event.clientX;
+    screenPoint.y = event.clientY;
+
+    const svgPoint = screenPoint.matrixTransform(matrix.inverse());
+
+    const dx = svgPoint.x - cx;
+    const dy = svgPoint.y - cy;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    const value = Math.max(
+      0,
+      Math.min(100, Math.round(distance / radius * 100))
+    );
+
+    const id = draggingAxisId.current;
+
+    setAxes(current => current.map(axis =>
+      axis.id === id ? { ...axis, value } : axis
+    ));
+
+    setMessage('');
+  };
+
+  const stopDragging = () => {
+    draggingAxisId.current = null;
   };
 
   const addAxis = () => {
@@ -68,7 +144,7 @@ function App() {
   const saveDiagram = () => {
     const diagram = {
       format: 'Post-Musical Performer Diagram',
-      version: 2,
+      version: 3,
       title,
       profileName,
       centerLabel,
@@ -273,10 +349,15 @@ function App() {
             />
 
             <svg
+              ref={svgRef}
               viewBox="0 0 600 570"
               width="100%"
               role="img"
-              aria-label="Radial performance diagram"
+              aria-label="Radial performance diagram. Drag the points to change their values."
+              style={{ touchAction: 'none', overflow: 'visible' }}
+              onPointerMove={handlePointerMove}
+              onPointerUp={stopDragging}
+              onPointerCancel={stopDragging}
             >
               {[25, 50, 75, 100].map(level => (
                 <polygon
@@ -324,8 +405,8 @@ function App() {
                 );
               })}
 
-              <polygon
-                points={polygon(axes.map(a => a.value))}
+              <path
+                d={smoothPath(axes.map(a => a.value))}
                 fill={color}
                 fillOpacity="0.32"
                 stroke={color}
@@ -341,10 +422,13 @@ function App() {
                     key={axis.id}
                     cx={x}
                     cy={y}
-                    r="5"
+                    r="7"
                     fill={color}
                     stroke="#fff"
                     strokeWidth="2"
+                    style={{ cursor: 'grab', touchAction: 'none' }}
+                    onPointerDown={event => startDragging(event, axis.id)}
+                    aria-label={`Move ${axis.name} point`}
                   />
                 );
               })}
@@ -369,6 +453,15 @@ function App() {
             }}>
               {profileName}
             </div>
+
+            <p style={{
+              textAlign: 'center',
+              color: '#899398',
+              fontSize: 11,
+              marginBottom: 0
+            }}>
+              Drag the points to adjust the diagram directly.
+            </p>
           </section>
 
           <section style={{
